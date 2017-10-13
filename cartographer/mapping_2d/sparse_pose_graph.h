@@ -91,6 +91,11 @@ class SparsePoseGraph : public mapping::SparsePoseGraph {
                         const mapping::proto::Node& node) override;
   void AddTrimmer(std::unique_ptr<mapping::PoseGraphTrimmer> trimmer) override;
   void RunFinalOptimization() override;
+  void SetInitialTrajectoryPose(
+      const int trajectory_id,
+      const int to_trajectory_id,
+      const common::Time& time,
+      const transform::Rigid3d& relative_pose) override;
   std::vector<std::vector<int>> GetConnectedTrajectories() override;
   int num_submaps(int trajectory_id) EXCLUDES(mutex_) override;
   mapping::SparsePoseGraph::SubmapData GetSubmapData(
@@ -145,6 +150,11 @@ class SparsePoseGraph : public mapping::SparsePoseGraph {
   // Adds constraints for older scans whenever a new submap is finished.
   void ComputeConstraintsForOldScans(const mapping::SubmapId& submap_id)
       REQUIRES(mutex_);
+
+  // Retrieves the global optimized pose of a node belonging to trajectory
+  // 'trajectory_id' closest to time 'time'.
+  transform::Rigid3d GetClosestOptimizedPose(int trajectory_id,
+                                             const common::Time& time);
 
   // Registers the callback to run the optimization once all constraints have
   // been computed, that will also do all work that queue up in 'work_queue_'.
@@ -223,6 +233,9 @@ class SparsePoseGraph : public mapping::SparsePoseGraph {
 
   // Set of all frozen trajectories not being optimized.
   std::set<int> frozen_trajectories_ GUARDED_BY(mutex_);
+
+  // Map of all initial trajectory poses.
+  std::map<int, InitialTrajectoryPose> initial_trajectory_poses_;
 
   // Allows querying and manipulating the pose graph by the 'trimmers_'. The
   // 'mutex_' of the pose graph is held while this class is used.

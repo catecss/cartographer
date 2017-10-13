@@ -68,6 +68,14 @@ class SparsePoseGraph {
     transform::Rigid3d pose;
   };
 
+  // A relative pose to another trajectory at time 'time' for the purpose of
+  // trajectory pose initialization.
+  struct InitialTrajectoryPose {
+    int to_trajectory_id;
+    common::Time time;
+    transform::Rigid3d relative_pose;
+  };
+
   SparsePoseGraph() {}
   virtual ~SparsePoseGraph() {}
 
@@ -95,6 +103,18 @@ class SparsePoseGraph {
 
   // Computes optimized poses.
   virtual void RunFinalOptimization() = 0;
+
+
+  // Sets the initial trajectory pose 'relative_pose' for trajectory
+  // 'trajectory_id' relative to trajectory 'to_trajectory_id' at time 'time'.
+  // Example: if agent 1 sees agent 2 at time t under the transform
+  // 'relative_pose' call
+  //   SetInitialTrajectoryPose(1, 2, t, relative_pose);
+  virtual void SetInitialTrajectoryPose(
+      const int trajectory_id,
+      const int to_trajectory_id,
+      const common::Time& time,
+      const transform::Rigid3d& relative_pose) = 0;
 
   // Gets the current trajectory clusters.
   virtual std::vector<std::vector<int>> GetConnectedTrajectories() = 0;

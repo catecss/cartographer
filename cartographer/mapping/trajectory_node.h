@@ -57,6 +57,8 @@ struct TrajectoryNode {
   // node is being trimmed, it must survive until all use finishes.
   std::shared_ptr<const Data> constant_data;
 
+  // The foreground thread's idea of the optimized node pose in the global map
+  // frame.
   transform::Rigid3d pose;
 };
 

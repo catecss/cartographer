@@ -212,6 +212,12 @@ void SparsePoseGraph::ComputeConstraintsForOldScans(
   }
 }
 
+transform::Rigid3d SparsePoseGraph::GetClosestOptimizedPose(
+    int trajectory_id,
+    const common::Time& time) {
+  
+}
+
 void SparsePoseGraph::ComputeConstraintsForScan(
     const mapping::NodeId& node_id,
     std::vector<std::shared_ptr<const Submap>> insertion_submaps,
@@ -454,6 +460,16 @@ void SparsePoseGraph::RunFinalOptimization() {
       options_.optimization_problem_options()
           .ceres_solver_options()
           .max_num_iterations());
+}
+
+void SparsePoseGraph::SetInitialTrajectoryPose(
+    const int trajectory_id,
+    const int to_trajectory_id,
+    const common::Time& time,
+    const transform::Rigid3d& relative_pose) {
+  initial_trajectory_poses_.emplace(
+      trajectory_id,
+      InitialTrajectoryPose{to_trajectory_id, time, relative_pose});
 }
 
 void SparsePoseGraph::RunOptimization() {

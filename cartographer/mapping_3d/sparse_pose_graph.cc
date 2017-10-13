@@ -502,6 +502,16 @@ void SparsePoseGraph::RunFinalOptimization() {
           .max_num_iterations());
 }
 
+void SparsePoseGraph::SetInitialTrajectoryPose(
+    const int trajectory_id,
+    const int to_trajectory_id,
+    const common::Time& time,
+    const transform::Rigid3d& relative_pose) {
+  initial_trajectory_poses_.emplace(
+      trajectory_id,
+      InitialTrajectoryPose{to_trajectory_id, time, relative_pose});
+}
+
 void SparsePoseGraph::LogResidualHistograms() {
   common::Histogram rotational_residual;
   common::Histogram translational_residual;
