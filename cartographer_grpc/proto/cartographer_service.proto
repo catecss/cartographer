@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package cartographer_grpc.proto;
+
+service Cartographer {
+  rpc DoNothing (Request) returns (Reply) {}
+}
+
+message Request {
+}
+
+message Reply {
+}
