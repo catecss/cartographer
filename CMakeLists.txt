@@ -73,7 +73,9 @@ foreach(ABS_FIL ${ALL_PROTOS})
            "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h"
     COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
     ARGS --cpp_out  ${PROJECT_BINARY_DIR} -I
-      ${PROJECT_SOURCE_DIR} ${ABS_FIL}
+      ${PROJECT_SOURCE_DIR}
+      --plugin=protoc-gen-grpc=grpc_cpp_plugin
+      ${ABS_FIL}
     DEPENDS ${ABS_FIL}
     COMMENT "Running C++ protocol buffer compiler on ${ABS_FIL}"
     VERBATIM
