@@ -26,6 +26,7 @@
 #include "cartographer/sensor/odometry_data.h"
 #include "cartographer/sensor/point_cloud.h"
 #include "cartographer/sensor/range_data.h"
+#include "cartographer/sensor/timed_point_cloud_data.h"
 #include "cartographer/transform/rigid_transform.h"
 
 namespace cartographer {
@@ -49,6 +50,11 @@ class DispatchableRangefinderData : public Data {
                               const Eigen::Vector3f& origin,
                               const TimedPointCloud& ranges)
       : time_(time), origin_(origin), ranges_(ranges) {}
+  DispatchableRangefinderData(
+      const sensor::TimedPointCloudData &timed_point_cloud_data)
+      : time_(timed_point_cloud_data.time),
+        origin_(timed_point_cloud_data.origin),
+        ranges_(timed_point_cloud_data.ranges) {}
 
   common::Time GetTime() const override { return time_; }
   void AddToGlobalTrajectoryBuilder(
