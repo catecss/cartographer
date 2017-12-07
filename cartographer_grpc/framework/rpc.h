@@ -61,6 +61,7 @@ class Rpc {
   void Finish(::grpc::Status status);
   Service* service() { return service_; }
   RpcEvent* GetRpcEvent(Event event);
+  int method_index() { return method_index_; }
 
  private:
   struct SendItem {

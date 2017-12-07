@@ -54,7 +54,7 @@ class RpcHandler : public RpcHandlerInterface {
     return {execution_context_->lock(), execution_context_};
   }
   template <typename T> T *GetUnsynchronizedContext() {
-    return execution_context_;
+    return static_cast<T*>(execution_context_);
   }
 
 private:

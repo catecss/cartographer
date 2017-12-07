@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "cartographer_grpc/map_builder_server.h"
 
 #include "cartographer_grpc/handlers/add_imu_data_handler.h"
@@ -26,21 +27,28 @@
 namespace cartographer_grpc {
 
 MapBuilderServer::MapBuilderContext::MapBuilderContext(
-    cartographer::mapping::MapBuilder *map_builder,
-    cartographer::common::BlockingQueue<SensorData> *sensor_data_queue)
+    cartographer::mapping::MapBuilder* map_builder,
+    cartographer::common::BlockingQueue<SensorData>* sensor_data_queue)
     : map_builder_(map_builder), sensor_data_queue_(sensor_data_queue) {}
 
-cartographer::mapping::MapBuilder &
+cartographer::mapping::MapBuilder&
 MapBuilderServer::MapBuilderContext::map_builder() {
   return *map_builder_;
 }
-cartographer::common::BlockingQueue<MapBuilderServer::SensorData> &
+cartographer::common::BlockingQueue<MapBuilderServer::SensorData>&
 MapBuilderServer::MapBuilderContext::sensor_data_queue() {
   return *sensor_data_queue_;
 }
 
+void MapBuilderServer::MapBuilderContext::AddSensorData(
+    const SensorData& sensor_data) {
+  sensor_data.sensor_data->AddToTrajectoryBuilder(
+      map_builder_->GetTrajectoryBuilder(sensor_data.trajectory_id),
+      sensor_data.sensor_id);
+}
+
 MapBuilderServer::MapBuilderServer(
-    const proto::MapBuilderServerOptions &map_builder_server_options)
+    const proto::MapBuilderServerOptions& map_builder_server_options)
     : map_builder_(map_builder_server_options.map_builder_options()) {
   framework::Server::Builder server_builder;
   server_builder.SetServerAddress(map_builder_server_options.server_address());
@@ -86,8 +94,10 @@ void MapBuilderServer::Shutdown() {
 }
 
 void MapBuilderServer::ProcessSensorDataQueue() {
+  LOG(INFO) << "Starting SLAM thread.";
   while (!shutting_down_) {
-    // TODO(cschuet): Implement this.
+    SensorData sensor_data = sensor_data_queue_.Pop();
+    grpc_server_->GetContext<MapBuilderContext>()->AddSensorData(sensor_data);
   }
 }
 

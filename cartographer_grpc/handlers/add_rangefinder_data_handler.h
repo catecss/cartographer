@@ -30,7 +30,7 @@ class AddRangefinderDataHandler
     : public framework::RpcHandler<
           framework::Stream<proto::AddRangefinderDataRequest>,
           google::protobuf::Empty> {
-public:
+ public:
   void OnRequest(const proto::AddRangefinderDataRequest &request) override {
     GetUnsynchronizedContext<MapBuilderServer::MapBuilderContext>()
         ->sensor_data_queue()

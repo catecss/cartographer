@@ -64,8 +64,15 @@ void Server::RunCompletionQueue(
     ::grpc::ServerCompletionQueue* completion_queue) {
   bool ok;
   void* tag;
+  LOG(INFO) << "Running completion queue " << completion_queue;
+  static std::vector<std::string> event_names = {"NEW_CONNECTION", "READ",
+                                                 "WRITE", "FINISH", "DONE"};
   while (completion_queue->Next(&tag, &ok)) {
     auto* rpc_event = static_cast<Rpc::RpcEvent*>(tag);
+    // LOG(INFO) << rpc_event->rpc->method_index() << " " << event_names[(int)
+    // rpc_event->event] << " " << rpc_event->rpc << " "
+    //          << " pending: " << (rpc_event->pending ? "true" : "false") << "
+    //          ok: " << (ok ? "true" : "false");
     rpc_event->rpc->service()->HandleEvent(rpc_event->event, rpc_event->rpc,
                                            ok);
   }

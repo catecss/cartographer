@@ -41,8 +41,9 @@ class MapBuilderServer {
          cartographer::common::BlockingQueue<SensorData> *sensor_data_queue);
      cartographer::mapping::MapBuilder &map_builder();
      cartographer::common::BlockingQueue<SensorData> &sensor_data_queue();
+     void AddSensorData(const SensorData &sensor_data);
 
-   private:
+    private:
      cartographer::mapping::MapBuilder *map_builder_;
      cartographer::common::BlockingQueue<SensorData> *sensor_data_queue_;
   };

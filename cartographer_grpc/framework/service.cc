@@ -25,12 +25,15 @@ namespace framework {
 Service::Service(const std::string& service_name,
                  const std::map<std::string, RpcHandlerInfo>& rpc_handler_infos)
     : rpc_handler_infos_(rpc_handler_infos) {
+  int i = 0;
   for (const auto& rpc_handler_info : rpc_handler_infos_) {
     // The 'handler' below is set to 'nullptr' indicating that we want to
     // handle this method asynchronously.
     this->AddMethod(new grpc::internal::RpcServiceMethod(
         rpc_handler_info.second.fully_qualified_name.c_str(),
         rpc_handler_info.second.rpc_type, nullptr /* handler */));
+    LOG(INFO) << i << " " << rpc_handler_info.second.fully_qualified_name;
+    ++i;
   }
 }
 
