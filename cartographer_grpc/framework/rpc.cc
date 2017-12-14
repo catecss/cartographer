@@ -27,7 +27,7 @@ namespace {
 // Finishes the gRPC for non-streaming response RPCs, i.e. NORMAL_RPC and
 // CLIENT_STREAMING. If no 'msg' is passed, we signal an error to the client as
 // the server is not honoring the gRPC call signature.
-template <typename ReaderWriter>
+template<typename ReaderWriter>
 void SendUnaryFinish(ReaderWriter* reader_writer, ::grpc::Status status,
                      const google::protobuf::Message* msg,
                      Rpc::RpcEvent* rpc_event) {
@@ -42,7 +42,7 @@ void SendUnaryFinish(ReaderWriter* reader_writer, ::grpc::Status status,
 
 Rpc::Rpc(int method_index,
          ::grpc::ServerCompletionQueue* server_completion_queue,
-          int event_queue_id,
+         int event_queue_id,
          ExecutionContext* execution_context,
          const RpcHandlerInfo& rpc_handler_info, Service* service,
          WeakPtrFactory weak_ptr_factory)
@@ -67,8 +67,13 @@ Rpc::Rpc(int method_index,
 
 std::unique_ptr<Rpc> Rpc::Clone() {
   return cartographer::common::make_unique<Rpc>(
-      method_index_, server_completion_queue_, event_queue_id_, execution_context_,
-      rpc_handler_info_, service_, weak_ptr_factory_);
+      method_index_,
+      server_completion_queue_,
+      event_queue_id_,
+      execution_context_,
+      rpc_handler_info_,
+      service_,
+      weak_ptr_factory_);
 }
 
 void Rpc::OnRequest() { handler_->OnRequestInternal(request_.get()); }
@@ -135,7 +140,7 @@ void Rpc::Write(std::unique_ptr<::google::protobuf::Message> message) {
     case ::grpc::internal::RpcMethod::BIDI_STREAMING:
       // For BIDI_STREAMING enqueue the message into the send queue and
       // start write operations if none are currently in flight.
-      send_queue_.emplace(SendItem{std::move(message), ::grpc::Status::OK});
+      EnqueueSendItem(SendItem{std::move(message), ::grpc::Status::OK});
       PerformWriteIfNeeded();
       break;
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
@@ -177,7 +182,7 @@ void Rpc::SendFinish(std::unique_ptr<::google::protobuf::Message> message,
 void Rpc::Finish(::grpc::Status status) {
   switch (rpc_handler_info_.rpc_type) {
     case ::grpc::internal::RpcMethod::BIDI_STREAMING:
-      send_queue_.emplace(SendItem{nullptr /* msg */, status});
+      EnqueueSendItem(SendItem{nullptr /* msg */, status});
       PerformWriteIfNeeded();
       break;
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
@@ -192,6 +197,7 @@ void Rpc::Finish(::grpc::Status status) {
 }
 
 void Rpc::PerformWriteIfNeeded() {
+  cartographer::common::MutexLocker locker(&send_queue_lock_);
   if (send_queue_.empty() || IsRpcEventPending(Event::WRITE)) {
     return;
   }
@@ -250,7 +256,7 @@ Rpc::async_writer_interface() {
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
     case ::grpc::internal::RpcMethod::NORMAL_RPC:
       LOG(FATAL) << "For NORMAL_RPC and CLIENT_STREAMING no streaming writer "
-                    "interface exists.";
+          "interface exists.";
       break;
     default:
       LOG(FATAL) << "RPC type not implemented.";
@@ -282,9 +288,24 @@ bool Rpc::IsRpcEventPending(Event event) { return *GetRpcEventState(event); }
 
 bool Rpc::IsAnyEventPending() {
   return IsRpcEventPending(Rpc::Event::DONE) ||
-         IsRpcEventPending(Rpc::Event::READ) ||
-         IsRpcEventPending(Rpc::Event::WRITE) ||
-         IsRpcEventPending(Rpc::Event::FINISH);
+      IsRpcEventPending(Rpc::Event::READ) ||
+      IsRpcEventPending(Rpc::Event::WRITE) ||
+      IsRpcEventPending(Rpc::Event::FINISH);
+}
+
+std::weak_ptr<Rpc> Rpc::GetWeakPtr() {
+  return weak_ptr_factory_(this);
+}
+
+void Rpc::EnqueueSendItem(SendItem&& send_item) {
+cartographer::common::MutexLocker locker(&send_queue_lock_);
+send_queue_.emplace(std::forward<SendItem>(send_item));
+}
+
+void Rpc::AddMessageToSendQueue(std::unique_ptr<google::protobuf::Message> msg) {
+  EnqueueSendItem(SendItem{std::move(msg), ::grpc::Status::OK});
+
+  // Also enqueue 'write-needed' message.
 }
 
 ActiveRpcs::ActiveRpcs() : lock_() {}

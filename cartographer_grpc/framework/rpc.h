@@ -65,6 +65,8 @@ class Rpc {
   bool IsRpcEventPending(Event event);
   bool IsAnyEventPending();
   void SetEventQueueId(int event_queue_id) { event_queue_id_ = event_queue_id; }
+  std::weak_ptr<Rpc> GetWeakPtr();
+  void AddMessageToSendQueue(std::unique_ptr<google::protobuf::Message> msg);
 
  private:
   struct SendItem {
@@ -79,6 +81,7 @@ class Rpc {
   void SendFinish(std::unique_ptr<::google::protobuf::Message> message,
                   ::grpc::Status status);
   bool* GetRpcEventState(Event event);
+  void EnqueueSendItem(SendItem&& send_item);
 
   ::grpc::internal::AsyncReaderInterface<::google::protobuf::Message>*
   async_reader_interface();
@@ -120,6 +123,7 @@ class Rpc {
                                                   google::protobuf::Message>>
       server_async_reader_writer_;
 
+  cartographer::common::Mutex send_queue_lock_;
   std::queue<SendItem> send_queue_;
 };
 

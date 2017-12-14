@@ -17,6 +17,8 @@
 #ifndef CARTOGRAPHER_GRPC_FRAMEWORK_RPC_HANDLER_H
 #define CARTOGRAPHER_GRPC_FRAMEWORK_RPC_HANDLER_H
 
+#include <memory>
+
 #include "cartographer_grpc/framework/execution_context.h"
 #include "cartographer_grpc/framework/rpc.h"
 #include "cartographer_grpc/framework/rpc_handler_interface.h"
@@ -35,6 +37,7 @@ class RpcHandler : public RpcHandlerInterface {
   using OutgoingType = Outgoing;
   using RequestType = StripStream<Incoming>;
   using ResponseType = StripStream<Outgoing>;
+  using MessageWriter = std::function<bool(std::unique_ptr<ResponseType>)>;
 
   void SetExecutionContext(ExecutionContext* execution_context) {
     execution_context_ = execution_context;
@@ -56,6 +59,17 @@ class RpcHandler : public RpcHandlerInterface {
   template <typename T>
   T* GetUnsynchronizedContext() {
     return dynamic_cast<T*>(execution_context_);
+  }
+  MessageWriter GetMessageWriter() {
+    std::weak_ptr<Rpc> rpc = rpc_->GetWeakPtr();
+    return [rpc](std::unique_ptr<ResponseType> message) {
+      if (auto shared_ptr_rpc = rpc.lock()) {
+        // Add message to the RPC's send queue.
+        shared_ptr_rpc->AddMessageToSendQueue(std::move(message));
+        return true;
+      }
+      return false;
+    };
   }
 
  private:
