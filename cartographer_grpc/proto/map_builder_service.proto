@@ -14,6 +14,7 @@
 
 syntax = "proto3";
 
+import "cartographer/mapping/proto/serialization.proto";
 import "cartographer/mapping/proto/trajectory_builder_options.proto";
 import "cartographer/sensor/proto/sensor.proto";
 import "google/protobuf/empty.proto";
@@ -54,6 +55,10 @@ message FinishTrajectoryRequest {
   int32 trajectory_id = 1;
 }
 
+message GetAllSubmapDataResponse {
+  repeated cartographer.mapping.proto.Submap submap_data = 1;
+}
+
 service MapBuilderService {
   // Starts a new trajectory and returns its index.
   rpc AddTrajectory(AddTrajectoryRequest) returns (AddTrajectoryResponse);
@@ -75,4 +80,6 @@ service MapBuilderService {
   // Marks a trajectory corresponding to 'trajectory_id' as finished,
   // i.e. no further sensor data is expected.
   rpc FinishTrajectory(FinishTrajectoryRequest) returns (google.protobuf.Empty);
+
+  rpc GetAllSubmapData(google.protobuf.Empty) returns (GetAllSubmapDataResponse);
 }

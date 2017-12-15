@@ -21,6 +21,7 @@
 #include "cartographer_grpc/handlers/add_rangefinder_data_handler.h"
 #include "cartographer_grpc/handlers/add_trajectory_handler.h"
 #include "cartographer_grpc/handlers/finish_trajectory_handler.h"
+#include "cartographer_grpc/handlers/get_all_submap_data_handler.h"
 #include "cartographer_grpc/proto/map_builder_service.grpc.pb.h"
 #include "glog/logging.h"
 
@@ -68,6 +69,8 @@ MapBuilderServer::MapBuilderServer(
       "AddRangefinderData");
   server_builder.RegisterHandler<handlers::FinishTrajectoryHandler,
                                  proto::MapBuilderService>("FinishTrajectory");
+  server_builder.RegisterHandler<handlers::GetAllSubmapDataHandler,
+                                 proto::MapBuilderService>("GetAllSubmapData");
   grpc_server_ = server_builder.Build();
   grpc_server_->SetExecutionContext(
       cartographer::common::make_unique<MapBuilderContext>(
