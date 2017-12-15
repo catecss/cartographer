@@ -26,9 +26,11 @@ namespace framework {
 
 Service::Service(const std::string& service_name,
                  const std::map<std::string, RpcHandlerInfo>& rpc_handler_infos,
-                 size_t num_event_queues)
+                 size_t num_event_queues,
+                 EventInserter event_inserter)
     : rpc_handler_infos_(rpc_handler_infos),
-      num_event_queues_(num_event_queues) {
+      num_event_queues_(num_event_queues),
+      event_inserter_(event_inserter) {
   for (const auto& rpc_handler_info : rpc_handler_infos_) {
     // The 'handler' below is set to 'nullptr' indicating that we want to
     // handle this method asynchronously.
@@ -47,7 +49,8 @@ void Service::StartServing(
       int event_queue_id = rand() % num_event_queues_;
       std::shared_ptr<Rpc> rpc =
           active_rpcs_.Add(cartographer::common::make_unique<Rpc>(
-              i, completion_queue_thread.completion_queue(), event_queue_id, execution_context,
+              i, completion_queue_thread.completion_queue(), event_queue_id,
+              event_inserter_, execution_context,
               rpc_handler_info.second, this, active_rpcs_.GetWeakPtrFactory()));
       rpc->RequestNextMethodInvocation();
     }
@@ -66,6 +69,8 @@ void Service::HandleEvent(Rpc::Event event, Rpc* rpc, bool ok) {
     case Rpc::Event::READ:
       HandleRead(rpc, ok);
       break;
+    case Rpc::Event::WRITE_NEEDED:
+      HandleWriteNeeded(rpc, ok);
     case Rpc::Event::WRITE:
       HandleWrite(rpc, ok);
       break;
@@ -113,6 +118,13 @@ void Service::HandleRead(Rpc* rpc, bool ok) {
 
   // Reads completed.
   rpc->OnReadsDone();
+
+  RemoveIfNotPending(rpc);
+}
+
+void Service::HandleWriteNeeded(Rpc* rpc, bool ok) {
+  // Send the next message or potentially finish the connection.
+  rpc->PerformWriteIfNeeded();
 
   RemoveIfNotPending(rpc);
 }

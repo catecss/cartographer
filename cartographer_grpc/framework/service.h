@@ -18,6 +18,7 @@
 #define CARTOGRAPHER_GRPC_FRAMEWORK_SERVICE_H
 
 #include "cartographer_grpc/framework/completion_queue_thread.h"
+#include "cartographer_grpc/framework/event_queue_thread.h"
 #include "cartographer_grpc/framework/execution_context.h"
 #include "cartographer_grpc/framework/rpc.h"
 #include "cartographer_grpc/framework/rpc_handler.h"
@@ -36,7 +37,8 @@ class Service : public ::grpc::Service {
 
   Service(const std::string& service_name,
           const std::map<std::string, RpcHandlerInfo>& rpc_handlers,
-          size_t num_event_queues);
+          size_t num_event_queues,
+          EventInserter event_inserter);
   void StartServing(std::vector<CompletionQueueThread>& completion_queues,
                     ExecutionContext* execution_context);
   void HandleEvent(Rpc::Event event, Rpc* rpc, bool ok);
@@ -45,6 +47,7 @@ class Service : public ::grpc::Service {
  private:
   void HandleNewConnection(Rpc* rpc, bool ok);
   void HandleRead(Rpc* rpc, bool ok);
+  void HandleWriteNeeded(Rpc* rpc, bool ok);
   void HandleWrite(Rpc* rpc, bool ok);
   void HandleFinish(Rpc* rpc, bool ok);
   void HandleDone(Rpc* rpc, bool ok);
@@ -53,6 +56,7 @@ class Service : public ::grpc::Service {
 
   std::map<std::string, RpcHandlerInfo> rpc_handler_infos_;
   size_t num_event_queues_;
+  EventInserter event_inserter_;
   ActiveRpcs active_rpcs_;
   bool shutting_down_ = false;
 };

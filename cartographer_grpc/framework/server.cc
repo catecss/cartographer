@@ -64,7 +64,8 @@ void Server::AddService(
   const auto result =
       services_.emplace(std::piecewise_construct, std::make_tuple(service_name),
                         std::make_tuple(service_name, rpc_handler_infos,
-                                        options_.num_event_threads));
+                                        options_.num_event_threads,
+                                        GetEventInserter()));
   CHECK(result.second) << "A service named " << service_name
                        << " already exists.";
   server_builder_.RegisterService(&result.first->second);
@@ -88,6 +89,12 @@ void Server::ProcessRpcEvent(Rpc::RpcEvent* rpc_event) {
         LOG(WARNING) << "Ignoring stale event.";
       }
       delete rpc_event;
+}
+
+EventInserter Server::GetEventInserter() {
+  return [this](int event_queue_id, Rpc::RpcEvent* rpc_event) {
+    event_queue_threads_.at(event_queue_id).event_queue()->Push(rpc_event);
+  };
 }
 
 void Server::RunEventQueue(EventQueue* event_queue) {

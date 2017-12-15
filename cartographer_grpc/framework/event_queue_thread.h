@@ -27,6 +27,7 @@ namespace cartographer_grpc {
 namespace framework {
 
 using EventQueue = cartographer::common::BlockingQueue<Rpc::RpcEvent*>;
+using EventInserter = std::function<void(int, Rpc::RpcEvent*)>;
 
 class EventQueueThread {
  public:

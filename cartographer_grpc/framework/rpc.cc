@@ -43,12 +43,14 @@ void SendUnaryFinish(ReaderWriter* reader_writer, ::grpc::Status status,
 Rpc::Rpc(int method_index,
          ::grpc::ServerCompletionQueue* server_completion_queue,
           int event_queue_id,
+          EventInserter event_inserter,
          ExecutionContext* execution_context,
          const RpcHandlerInfo& rpc_handler_info, Service* service,
          WeakPtrFactory weak_ptr_factory)
     : method_index_(method_index),
       server_completion_queue_(server_completion_queue),
       event_queue_id_(event_queue_id),
+      event_inserter_(event_inserter),
       execution_context_(execution_context),
       rpc_handler_info_(rpc_handler_info),
       service_(service),
@@ -67,7 +69,9 @@ Rpc::Rpc(int method_index,
 
 std::unique_ptr<Rpc> Rpc::Clone() {
   return cartographer::common::make_unique<Rpc>(
-      method_index_, server_completion_queue_, event_queue_id_, execution_context_,
+      method_index_, server_completion_queue_, event_queue_id_,
+      event_inserter_,
+      execution_context_,
       rpc_handler_info_, service_, weak_ptr_factory_);
 }
 
@@ -79,7 +83,7 @@ void Rpc::RequestNextMethodInvocation() {
   // Ask gRPC to notify us when the connection terminates.
   SetRpcEventState(Event::DONE, true);
   server_context_.AsyncNotifyWhenDone(
-      new RpcEvent{Event::DONE, weak_ptr_factory_(this)});
+      new RpcEvent{Event::DONE, weak_ptr_factory_(this), event_queue_id_});
 
   // Make sure after terminating the connection, gRPC notifies us with this
   // event.
@@ -89,20 +93,20 @@ void Rpc::RequestNextMethodInvocation() {
       service_->RequestAsyncBidiStreaming(
           method_index_, &server_context_, streaming_interface(),
           server_completion_queue_, server_completion_queue_,
-          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this)});
+          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this), event_queue_id_});
       break;
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
       service_->RequestAsyncClientStreaming(
           method_index_, &server_context_, streaming_interface(),
           server_completion_queue_, server_completion_queue_,
-          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this)});
+          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this), event_queue_id_});
       break;
     case ::grpc::internal::RpcMethod::NORMAL_RPC:
       service_->RequestAsyncUnary(
           method_index_, &server_context_, request_.get(),
           streaming_interface(), server_completion_queue_,
           server_completion_queue_,
-          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this)});
+          new RpcEvent{Event::NEW_CONNECTION, weak_ptr_factory_(this), event_queue_id_});
       break;
     default:
       LOG(FATAL) << "RPC type not implemented.";
@@ -116,7 +120,7 @@ void Rpc::RequestStreamingReadIfNeeded() {
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
       SetRpcEventState(Event::READ, true);
       async_reader_interface()->Read(
-          request_.get(), new RpcEvent{Event::READ, weak_ptr_factory_(this)});
+          request_.get(), new RpcEvent{Event::READ, weak_ptr_factory_(this), event_queue_id_});
       break;
     case ::grpc::internal::RpcMethod::NORMAL_RPC:
       // For NORMAL_RPC we don't have to do anything here, since gRPC
@@ -131,86 +135,66 @@ void Rpc::RequestStreamingReadIfNeeded() {
 }
 
 void Rpc::Write(std::unique_ptr<::google::protobuf::Message> message) {
-  switch (rpc_handler_info_.rpc_type) {
-    case ::grpc::internal::RpcMethod::BIDI_STREAMING:
-      // For BIDI_STREAMING enqueue the message into the send queue and
-      // start write operations if none are currently in flight.
-      send_queue_.emplace(SendItem{std::move(message), ::grpc::Status::OK});
-      PerformWriteIfNeeded();
-      break;
-    case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
-      SendFinish(std::move(message), ::grpc::Status::OK);
-      break;
-    case ::grpc::internal::RpcMethod::NORMAL_RPC:
-      SendFinish(std::move(message), ::grpc::Status::OK);
-      break;
-    default:
-      LOG(FATAL) << "RPC type not implemented.";
-  }
+  send_queue_.emplace(SendItem{std::move(message), ::grpc::Status::OK});
+  event_inserter_(event_queue_id_, new RpcEvent{Event::WRITE_NEEDED, weak_ptr_factory_(this), event_queue_id_, true});
 }
 
-void Rpc::SendFinish(std::unique_ptr<::google::protobuf::Message> message,
+void Rpc::Finish(::grpc::Status status) {
+  send_queue_.emplace(SendItem{nullptr /* message */, status});
+  event_inserter_(event_queue_id_, new RpcEvent{Event::WRITE_NEEDED, weak_ptr_factory_(this), event_queue_id_, true});
+}
+
+void Rpc::PerformFinish(std::unique_ptr<::google::protobuf::Message> message,
                      ::grpc::Status status) {
   SetRpcEventState(Event::FINISH, true);
   switch (rpc_handler_info_.rpc_type) {
     case ::grpc::internal::RpcMethod::BIDI_STREAMING:
       CHECK(!message);
       server_async_reader_writer_->Finish(
-          status, new RpcEvent{Event::FINISH, weak_ptr_factory_(this)});
+          status, new RpcEvent{Event::FINISH, weak_ptr_factory_(this), event_queue_id_});
       break;
     case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
       response_ = std::move(message);
       SendUnaryFinish(server_async_reader_.get(), status, response_.get(),
-                      new RpcEvent{Event::FINISH, weak_ptr_factory_(this)});
+                      new RpcEvent{Event::FINISH, weak_ptr_factory_(this), event_queue_id_});
       break;
     case ::grpc::internal::RpcMethod::NORMAL_RPC:
       response_ = std::move(message);
       SendUnaryFinish(server_async_response_writer_.get(), status,
                       response_.get(),
-                      new RpcEvent{Event::FINISH, weak_ptr_factory_(this)});
+                      new RpcEvent{Event::FINISH, weak_ptr_factory_(this), event_queue_id_});
       break;
     default:
       LOG(FATAL) << "RPC type not implemented.";
   }
 }
 
-void Rpc::Finish(::grpc::Status status) {
-  switch (rpc_handler_info_.rpc_type) {
-    case ::grpc::internal::RpcMethod::BIDI_STREAMING:
-      send_queue_.emplace(SendItem{nullptr /* msg */, status});
-      PerformWriteIfNeeded();
-      break;
-    case ::grpc::internal::RpcMethod::CLIENT_STREAMING:
-      SendFinish(nullptr /* message */, status);
-      break;
-    case ::grpc::internal::RpcMethod::NORMAL_RPC:
-      SendFinish(nullptr /* message */, status);
-      break;
-    default:
-      LOG(FATAL) << "RPC type not implemented.";
-  }
+void Rpc::PerformWrite(std::unique_ptr<::google::protobuf::Message> message,
+                ::grpc::Status status) {
+  CHECK_NE(rpc_handler_info_.rpc_type, ::grpc::internal::RpcMethod::NORMAL_RPC);
+  CHECK_NE(rpc_handler_info_.rpc_type, ::grpc::internal::RpcMethod::CLIENT_STREAMING);
+  SetRpcEventState(Event::WRITE, true);
+  response_ = std::move(message);
+  async_writer_interface()->Write(
+      *response_.get(), new RpcEvent{Event::WRITE, weak_ptr_factory_(this), event_queue_id_});
 }
 
 void Rpc::PerformWriteIfNeeded() {
-  if (send_queue_.empty() || IsRpcEventPending(Event::WRITE)) {
+  if (send_queue_.empty() || IsRpcEventPending(Event::WRITE)
+      || IsRpcEventPending(Event::FINISH)) {
     return;
   }
 
-  // Make sure not other send operations are in-flight.
-  CHECK(!IsRpcEventPending(Event::FINISH));
-
   SendItem send_item = std::move(send_queue_.front());
   send_queue_.pop();
-  response_ = std::move(send_item.msg);
 
-  if (response_) {
-    SetRpcEventState(Event::WRITE, true);
-    async_writer_interface()->Write(
-        *response_.get(), new RpcEvent{Event::WRITE, weak_ptr_factory_(this)});
-  } else {
-    CHECK(send_queue_.empty());
-    SendFinish(nullptr /* message */, send_item.status);
+  if (!send_item.msg
+      || rpc_handler_info_.rpc_type == ::grpc::internal::RpcMethod::NORMAL_RPC
+      || rpc_handler_info_.rpc_type == ::grpc::internal::RpcMethod::CLIENT_STREAMING) {
+    PerformFinish(std::move(send_item.msg), send_item.status);
+    return;
   }
+  PerformWrite(std::move(send_item.msg), send_item.status);
 }
 
 ::grpc::internal::ServerAsyncStreamingInterface* Rpc::streaming_interface() {
@@ -270,6 +254,8 @@ bool* Rpc::GetRpcEventState(Event event) {
       return &read_event_pending_;
     case Event::WRITE:
       return &write_event_pending_;
+    case Event::WRITE_NEEDED:
+      return &write_needed_event_pending_;
   }
   LOG(FATAL) << "Never reached.";
 }

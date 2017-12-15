@@ -39,8 +39,9 @@ class Service;
 class Rpc {
  public:
   struct RpcEvent;
+  using EventInserter = std::function<void(int, Rpc::RpcEvent*)>;
   using WeakPtrFactory = std::function<std::weak_ptr<Rpc>(Rpc*)>;
-  enum class Event { NEW_CONNECTION = 0, READ, WRITE, FINISH, DONE };
+  enum class Event { NEW_CONNECTION = 0, READ, WRITE_NEEDED, WRITE, FINISH, DONE };
   struct RpcEvent {
     const Event event;
     std::weak_ptr<Rpc> rpc;
@@ -49,6 +50,7 @@ class Rpc {
   };
   Rpc(int method_index, ::grpc::ServerCompletionQueue* server_completion_queue,
       int event_queue_id,
+      EventInserter event_inserter,
       ExecutionContext* execution_context,
       const RpcHandlerInfo& rpc_handler_info, Service* service,
       WeakPtrFactory weak_ptr_factory);
@@ -76,7 +78,9 @@ class Rpc {
   Rpc& operator=(const Rpc&) = delete;
   void InitializeReadersAndWriters(
       ::grpc::internal::RpcMethod::RpcType rpc_type);
-  void SendFinish(std::unique_ptr<::google::protobuf::Message> message,
+  void PerformFinish(std::unique_ptr<::google::protobuf::Message> message,
+                  ::grpc::Status status);
+  void PerformWrite(std::unique_ptr<::google::protobuf::Message> message,
                   ::grpc::Status status);
   bool* GetRpcEventState(Event event);
 
@@ -90,6 +94,7 @@ class Rpc {
   int method_index_;
   ::grpc::ServerCompletionQueue* server_completion_queue_;
   int event_queue_id_;
+  EventInserter event_inserter_;
   ExecutionContext* execution_context_;
   RpcHandlerInfo rpc_handler_info_;
   Service* service_;
@@ -102,6 +107,7 @@ class Rpc {
   // indicates that the read has completed and currently no read is in-flight.
   bool new_connection_event_pending_ = false;
   bool read_event_pending_ = false;
+  bool write_needed_event_pending_ = false;
   bool write_event_pending_ = false;
   bool finish_event_pending_ = false;
   bool done_event_pending_ = false;

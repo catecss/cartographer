@@ -120,6 +120,8 @@ class Server {
 
   void ProcessRpcEvent(Rpc::RpcEvent* rpc_event);
 
+  EventInserter GetEventInserter();
+
   Options options_;
 
   bool shutting_down_ = false;
