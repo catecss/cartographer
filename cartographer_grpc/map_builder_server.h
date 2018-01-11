@@ -25,6 +25,7 @@
 #include "cartographer_grpc/framework/execution_context.h"
 #include "cartographer_grpc/framework/server.h"
 #include "cartographer_grpc/proto/map_builder_server_options.pb.h"
+#include "cartographer_grpc/uplink.h"
 
 namespace cartographer_grpc {
 
@@ -64,6 +65,7 @@ class MapBuilderServer {
         int trajectory_id, LocalSlamSubscriptionCallback callback);
     void UnsubscribeLocalSlamResults(const SubscriptionId& subscription_id);
     void NotifyFinishTrajectory(int trajectory_id);
+    Uplink* uplink() { return map_builder_server_->uplink_.get(); }
 
     template <typename SensorDataType>
     void EnqueueSensorData(int trajectory_id, const std::string& sensor_id,
@@ -126,6 +128,7 @@ class MapBuilderServer {
   int current_subscription_index_ = 0;
   std::map<int /* trajectory ID */, LocalSlamResultHandlerSubscriptions>
       local_slam_subscriptions_ GUARDED_BY(local_slam_subscriptions_lock_);
+  std::unique_ptr<Uplink> uplink_;
 };
 
 }  // namespace cartographer_grpc
