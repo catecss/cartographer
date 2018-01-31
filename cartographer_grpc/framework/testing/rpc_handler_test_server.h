@@ -39,7 +39,7 @@ const std::string kServerAddress = "localhost:50051";
 template <class RpcHandlerType>
 class RpcHandlerTestServer : public Server {
  public:
-  RpcHandlerTestServer() : Server(Options{1, 1, kServerAddress}) {
+  RpcHandlerTestServer() : Server(Options{1, 1, kServerAddress}), {
     // Register the handler under test.
     this->AddService(kServiceName, {{kMethodName, GetRpcHandlerInfo()}});
     // Starts the server and instantiates the handler under test.
@@ -68,7 +68,7 @@ class RpcHandlerTestServer : public Server {
         LOG(FATAL) << "Not implemented";
         break;
     }
-    WaitForHandlerCompletion(RpcHandlerWrapper::ON_REQUEST);
+    WaitForHandlerCompletion(RpcHandlerWrapper<RpcHandlerType>::ON_REQUEST);
   }
 
   // Sends a WRITES_DONE event to the handler, waits for the handler
@@ -86,7 +86,7 @@ class RpcHandlerTestServer : public Server {
         LOG(FATAL) << "Not implemented";
         break;
     }
-    WaitForHandlerCompletion(RpcHandlerWrapper::ON_READS_DONE);
+    WaitForHandlerCompletion(RpcHandlerWrapper<RpcHandlerType>::ON_READS_DONE);
   }
 
   // Sends a FINISH event to the handler under test, waits for the
@@ -102,14 +102,15 @@ class RpcHandlerTestServer : public Server {
         LOG(FATAL) << "Not implemented";
         break;
     }
-    WaitForHandlerCompletion(RpcHandlerWrapper::ON_FINISH);
+    WaitForHandlerCompletion(RpcHandlerWrapper<RpcHandlerType>::ON_FINISH);
   }
 
  private:
   using ClientWriter = ::grpc::internal::ClientWriterFactory<
       typename RpcHandlerType::RequestType>;
 
-  void WaitForHandlerCompletion(RpcHandlerWrapper::RpcHandlerEvent event) {
+  void WaitForHandlerCompletion(
+      typename RpcHandlerWrapper<RpcHandlerType>::RpcHandlerEvent event) {
     CHECK_EQ(rpc_handler_event_queue_.Pop(), event);
   }
 
@@ -142,10 +143,11 @@ class RpcHandlerTestServer : public Server {
         RpcType<typename RpcHandlerType::IncomingType,
                 typename RpcHandlerType::OutgoingType>::value;
     auto event_callback =
-        [this](RpcHandlerWrapper<RpcHandlerType>::RpcHandlerEvent event) {
+        [this](
+            typename RpcHandlerWrapper<RpcHandlerType>::RpcHandlerEvent event) {
           rpc_handler_event_queue_.Push(event);
         };
-    auto handler_instantiator = [this](
+    auto handler_instantiator = [event_callback](
                                     Rpc *const rpc,
                                     ExecutionContext *const execution_context) {
       std::unique_ptr<RpcHandlerInterface> rpc_handler =
@@ -161,13 +163,14 @@ class RpcHandlerTestServer : public Server {
         handler_instantiator, rpc_type, kFullyQualifiedMethodName};
   }
 
-  ::grpc::internal::RpcMethod rpc_method_;
   ::grpc::ClientContext context_;
   std::shared_ptr<::grpc::ChannelInterface> channel_;
+  ::grpc::internal::RpcMethod rpc_method_;
   std::unique_ptr<::grpc::ClientWriter<typename RpcHandlerType::RequestType>>
       client_writer_;
   std::unique_ptr<typename RpcHandlerType::ResponseType> response_;
-  cartographer::common::BlockingQueue<RpcHandlerWrapper::RpcHandlerEvent>
+  cartographer::common::BlockingQueue<
+      typename RpcHandlerWrapper<RpcHandlerType>::RpcHandlerEvent>
       rpc_handler_event_queue_;
 };
 
