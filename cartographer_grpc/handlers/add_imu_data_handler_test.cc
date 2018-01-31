@@ -15,6 +15,7 @@
  */
 #include "cartographer_grpc/handlers/add_imu_data_handler.h"
 #include "cartographer_grpc/framework/testing/rpc_handler_test_server.h"
+#include "cartographer_grpc/testing/mock_map_builder_context.h"
 #include "gtest/gtest.h"
 
 namespace cartographer_grpc {
@@ -26,7 +27,16 @@ class AddImuDataHandlerTest : public ::testing::Test {
   framework::testing::RpcHandlerTestServer<AddImuDataHandler> test_server_;
 };
 
-TEST_F(AddImuDataHandlerTest, NoUploader) {}
+TEST_F(AddImuDataHandlerTest, NoUploader) {
+  auto mock_map_builder =
+      cartographer::common::make_unique<testing::MockMapBuilderContext>();
+  LOG(INFO) << "Sending write";
+  test_server_.SendWrite("");
+  LOG(INFO) << "Sending WritesDone";
+  test_server_.SendWritesDone();
+  LOG(INFO) << "Sending Finish";
+  test_server_.SendFinish();
+}
 
 }  // namespace
 }  // namespace handlers

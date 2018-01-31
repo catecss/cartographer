@@ -56,7 +56,8 @@ class MapBuilderServer {
   class MapBuilderContext : public framework::ExecutionContext {
    public:
     MapBuilderContext(MapBuilderServer* map_builder_server);
-    cartographer::mapping::MapBuilderInterface& map_builder();
+    virtual ~MapBuilderContext() = default;
+    virtual cartographer::mapping::MapBuilderInterface& map_builder();
     cartographer::common::BlockingQueue<std::unique_ptr<Data>>&
     sensor_data_queue();
     cartographer::mapping::TrajectoryBuilderInterface::LocalSlamResultCallback

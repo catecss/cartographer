@@ -84,10 +84,6 @@ class Server {
    private:
     using ServiceInfo = std::map<std::string, RpcHandlerInfo>;
 
-    std::tuple<std::string /* service_full_name */,
-               std::string /* method_name */>
-    ParseMethodFullName(const std::string& method_full_name);
-
     template <typename RpcHandlerType>
     void CheckHandlerCompatibility(const std::string& service_full_name,
                                    const std::string& method_name) {
@@ -161,6 +157,9 @@ class Server {
   void AddService(
       const std::string& service_name,
       const std::map<std::string, RpcHandlerInfo>& rpc_handler_infos);
+  static std::tuple<std::string /* service_full_name */,
+                    std::string /* method_name */>
+  ParseMethodFullName(const std::string& method_full_name);
 
  private:
   Server(const Server&) = delete;

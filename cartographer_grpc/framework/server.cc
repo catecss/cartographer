@@ -39,18 +39,6 @@ void Server::Builder::SetServerAddress(const std::string& server_address) {
   options_.server_address = server_address;
 }
 
-std::tuple<std::string, std::string> Server::Builder::ParseMethodFullName(
-    const std::string& method_full_name) {
-  CHECK(method_full_name.at(0) == '/') << "Invalid method name.";
-  std::stringstream stream(method_full_name.substr(1));
-  std::string service_full_name;
-  std::getline(stream, service_full_name, '/');
-  std::string method_name;
-  std::getline(stream, method_name, '/');
-  CHECK(!service_full_name.empty() && !method_name.empty());
-  return std::make_tuple(service_full_name, method_name);
-}
-
 std::unique_ptr<Server> Server::Builder::Build() {
   std::unique_ptr<Server> server(new Server(options_));
   for (const auto& service_handlers : rpc_handlers_) {
@@ -103,6 +91,18 @@ EventQueue* Server::SelectNextEventQueueRoundRobin() {
   current_event_queue_id_ =
       (current_event_queue_id_ + 1) % options_.num_event_threads;
   return event_queue_threads_.at(current_event_queue_id_).event_queue();
+}
+
+std::tuple<std::string, std::string> Server::ParseMethodFullName(
+    const std::string& method_full_name) {
+  CHECK(method_full_name.at(0) == '/') << "Invalid method name.";
+  std::stringstream stream(method_full_name.substr(1));
+  std::string service_full_name;
+  std::getline(stream, service_full_name, '/');
+  std::string method_name;
+  std::getline(stream, method_name, '/');
+  CHECK(!service_full_name.empty() && !method_name.empty());
+  return std::make_tuple(service_full_name, method_name);
 }
 
 void Server::RunEventQueue(EventQueue* event_queue) {
