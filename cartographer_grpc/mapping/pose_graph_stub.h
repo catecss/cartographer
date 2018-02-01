@@ -18,7 +18,7 @@
 #define CARTOGRAPHER_GRPC_MAPPING_POSE_GRAPH_STUB_H_
 
 #include "cartographer/mapping/pose_graph_interface.h"
-#include "cartographer_grpc/proto/map_builder_service.grpc.pb.h"
+#include "cartographer_grpc/proto/map_builder_service.pb.h"
 #include "grpc++/grpc++.h"
 
 namespace cartographer_grpc {
@@ -26,8 +26,7 @@ namespace mapping {
 
 class PoseGraphStub : public cartographer::mapping::PoseGraphInterface {
  public:
-  PoseGraphStub(std::shared_ptr<grpc::Channel> client_channel,
-                proto::MapBuilderService::Stub* stub);
+  PoseGraphStub(std::shared_ptr<grpc::Channel> client_channel);
 
   PoseGraphStub(const PoseGraphStub&) = delete;
   PoseGraphStub& operator=(const PoseGraphStub&) = delete;
@@ -51,7 +50,6 @@ class PoseGraphStub : public cartographer::mapping::PoseGraphInterface {
 
  private:
   std::shared_ptr<grpc::Channel> client_channel_;
-  proto::MapBuilderService::Stub* stub_;
 };
 
 }  // namespace mapping

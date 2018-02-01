@@ -21,8 +21,12 @@
 
 #include "cartographer/mapping/local_slam_result_data.h"
 #include "cartographer/mapping/trajectory_builder_interface.h"
-#include "cartographer_grpc/framework/client_writer.h"
-#include "cartographer_grpc/proto/map_builder_service.grpc.pb.h"
+#include "cartographer_grpc/handlers/add_fixed_frame_pose_data_handler.h"
+#include "cartographer_grpc/handlers/add_imu_data_handler.h"
+#include "cartographer_grpc/handlers/add_landmark_data_handler.h"
+#include "cartographer_grpc/handlers/add_odometry_data_handler.h"
+#include "cartographer_grpc/handlers/add_rangefinder_data_handler.h"
+#include "cartographer_grpc/proto/map_builder_service.pb.h"
 #include "grpc++/grpc++.h"
 
 namespace cartographer_grpc {
@@ -70,13 +74,11 @@ class TrajectoryBuilderStub
 
   std::shared_ptr<grpc::Channel> client_channel_;
   const int trajectory_id_;
-  std::unique_ptr<proto::MapBuilderService::Stub> stub_;
-  framework::ClientWriter<proto::AddRangefinderDataRequest> rangefinder_writer_;
-  framework::ClientWriter<proto::AddImuDataRequest> imu_writer_;
-  framework::ClientWriter<proto::AddOdometryDataRequest> odometry_writer_;
-  framework::ClientWriter<proto::AddFixedFramePoseDataRequest>
-      fixed_frame_writer_;
-  framework::ClientWriter<proto::AddLandmarkDataRequest> landmark_writer_;
+  framework::Client<handlers::AddRangefinderDataHandler> rangefinder_client_;
+  framework::Client<handlers::AddImuDataHandler> imu_client_;
+  framework::Client<handlers::AddOdometryDataHandler> odometry_client_;
+  framework::Client<handlers::AddFixedFramePoseDataHandler> fixed_frame_client_;
+  framework::Client<handlers::AddLandmarkDataHandler> landmark_client_;
   LocalSlamResultReader local_slam_result_reader_;
 };
 

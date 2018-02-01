@@ -18,15 +18,20 @@
 #define CARTOGRAPHER_GRPC_MAP_BUILDER_CONTEXT_INTERFACE_H
 
 #include "cartographer/common/blocking_queue.h"
-#include "cartographer/mapping/map_builder_interface.h"
 #include "cartographer/sensor/data.h"
 #include "cartographer/sensor/range_data.h"
 #include "cartographer/transform/rigid_transform.h"
 #include "cartographer_grpc/framework/execution_context.h"
-#include "cartographer_grpc/local_trajectory_uploader.h"
+
+namespace cartographer {
+namespace mapping {
+class MapBuilderInterface;
+}  // namespace mapping
+}  // namespace cartographer
 
 namespace cartographer_grpc {
 
+class LocalTrajectoryUploader;
 class MapBuilderServer;
 class MapBuilderContextInterface : public framework::ExecutionContext {
  public:

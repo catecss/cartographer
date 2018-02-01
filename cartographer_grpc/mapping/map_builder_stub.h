@@ -22,7 +22,7 @@
 #include "cartographer/mapping/map_builder_interface.h"
 #include "cartographer_grpc/mapping/pose_graph_stub.h"
 #include "cartographer_grpc/mapping/trajectory_builder_stub.h"
-#include "cartographer_grpc/proto/map_builder_service.grpc.pb.h"
+#include "cartographer_grpc/proto/map_builder_service.pb.h"
 #include "grpc++/grpc++.h"
 
 namespace cartographer_grpc {

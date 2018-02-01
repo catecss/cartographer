@@ -32,7 +32,7 @@
 #include "cartographer_grpc/handlers/load_map_handler.h"
 #include "cartographer_grpc/handlers/receive_local_slam_results_handler.h"
 #include "cartographer_grpc/handlers/run_final_optimization_handler.h"
-#include "cartographer_grpc/proto/map_builder_service.grpc.pb.h"
+#include "cartographer_grpc/proto/map_builder_service.pb.h"
 #include "cartographer_grpc/sensor/serialization.h"
 #include "glog/logging.h"
 
