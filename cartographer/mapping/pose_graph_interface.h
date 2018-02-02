@@ -27,6 +27,10 @@ namespace mapping {
 
 class PoseGraphInterface {
  public:
+  struct MyConstraint {
+    NodeId from_node;
+    NodeId to_node;
+  };
   // A "constraint" as in the paper by Konolige, Kurt, et al. "Efficient sparse
   // pose adjustment for 2d mapping." Intelligent Robots and Systems (IROS),
   // 2010 IEEE/RSJ International Conference on (pp. 22--29). IEEE, 2010.

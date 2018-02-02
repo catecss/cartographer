@@ -53,6 +53,15 @@ class PoseGraphTrimmer {
   virtual bool IsFinished() = 0;
 };
 
+class MyNodeTrimmer : public PoseGraphTrimmer {
+ public:
+  virtual ~MyNodeTrimmer() {}
+
+  void Trim(Trimmable* pose_graph) override;
+
+  bool IsFinished() override;
+};
+
 // Keeps the last 'num_submaps_to_keep' of the trajectory with 'trajectory_id'
 // to implement localization without mapping.
 class PureLocalizationTrimmer : public PoseGraphTrimmer {

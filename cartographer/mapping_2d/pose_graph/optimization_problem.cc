@@ -112,8 +112,10 @@ void OptimizationProblem::SetMaxNumIterations(const int32 max_num_iterations) {
       max_num_iterations);
 }
 
-void OptimizationProblem::Solve(const std::vector<Constraint>& constraints,
-                                const std::set<int>& frozen_trajectories) {
+void OptimizationProblem::Solve(
+    mapping::MapById<mapping::NodeId, MyConstraint>& my_constraints,
+    const std::vector<Constraint>& constraints,
+    const std::set<int>& frozen_trajectories) {
   if (node_data_.empty()) {
     // Nothing to optimize.
     return;
@@ -179,18 +181,23 @@ void OptimizationProblem::Solve(const std::vector<Constraint>& constraints,
       const NodeData& second_node_data = node_it->data;
 
       if (second_node_id.node_index != first_node_id.node_index + 1) {
-        continue;
+        // There is a gap.
+        if (second_node_id.node_index == first_node_id.node_index + 2) {
+          // one missing
+        } else {
+          // several missing
+        }
+      } else {
+        const transform::Rigid3d relative_pose = ComputeRelativePose(
+            trajectory_id, first_node_data, second_node_data);
+        problem.AddResidualBlock(
+            SpaCostFunction::CreateAutoDiffCostFunction(Constraint::Pose{
+                relative_pose, options_.consecutive_node_translation_weight(),
+                options_.consecutive_node_rotation_weight()}),
+            nullptr /* loss function */, C_nodes.at(first_node_id).data(),
+            C_nodes.at(second_node_id).data());
       }
-
-      const transform::Rigid3d relative_pose =
-          ComputeRelativePose(trajectory_id, first_node_data, second_node_data);
-      problem.AddResidualBlock(
-          SpaCostFunction::CreateAutoDiffCostFunction(Constraint::Pose{
-              relative_pose, options_.consecutive_node_translation_weight(),
-              options_.consecutive_node_rotation_weight()}),
-          nullptr /* loss function */, C_nodes.at(first_node_id).data(),
-          C_nodes.at(second_node_id).data());
-    }
+    }  // for
   }
 
   // Solve.

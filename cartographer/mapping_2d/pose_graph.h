@@ -58,6 +58,8 @@ namespace mapping_2d {
 // for each match), both poses of nodes and of submaps are to be optimized.
 // All constraints are between a submap i and a node j.
 class PoseGraph : public mapping::PoseGraph {
+  friend class mapping::MyNodeTrimmer;
+
  public:
   PoseGraph(const mapping::proto::PoseGraphOptions& options,
             common::ThreadPool* thread_pool);
@@ -230,6 +232,8 @@ class PoseGraph : public mapping::PoseGraph {
   pose_graph::OptimizationProblem optimization_problem_;
   pose_graph::ConstraintBuilder constraint_builder_ GUARDED_BY(mutex_);
   std::vector<Constraint> constraints_ GUARDED_BY(mutex_);
+  mapping::MapById<mapping::NodeId, MyConstraint> my_constraints_
+      GUARDED_BY(mutex_);
 
   // Submaps get assigned an ID and state as soon as they are seen, even
   // before they take part in the background computations.
@@ -263,6 +267,7 @@ class PoseGraph : public mapping::PoseGraph {
   std::map<int, InitialTrajectoryPose> initial_trajectory_poses_
       GUARDED_BY(mutex_);
 
+ public:
   // Allows querying and manipulating the pose graph by the 'trimmers_'. The
   // 'mutex_' of the pose graph is held while this class is used.
   class TrimmingHandle : public mapping::Trimmable {
@@ -274,6 +279,7 @@ class PoseGraph : public mapping::PoseGraph {
     void MarkSubmapAsTrimmed(const mapping::SubmapId& submap_id)
         REQUIRES(parent_->mutex_) override;
     bool IsFinished(int trajectory_id) const override;
+    PoseGraph* pose_graph() { return parent_; }
 
    private:
     PoseGraph* const parent_;

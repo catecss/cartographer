@@ -30,6 +30,7 @@
 #include "cartographer/mapping/id.h"
 #include "cartographer/mapping/pose_graph/proto/optimization_problem_options.pb.h"
 #include "cartographer/mapping/pose_graph_interface.h"
+#include "cartographer/mapping/pose_graph_trimmer.h"
 #include "cartographer/sensor/imu_data.h"
 #include "cartographer/sensor/map_by_time.h"
 #include "cartographer/sensor/odometry_data.h"
@@ -54,6 +55,7 @@ struct SubmapData {
 class OptimizationProblem {
  public:
   using Constraint = mapping::PoseGraphInterface::Constraint;
+  using MyConstraint = mapping::PoseGraphInterface::MyConstraint;
 
   explicit OptimizationProblem(
       const mapping::pose_graph::proto::OptimizationProblemOptions& options);
@@ -83,7 +85,8 @@ class OptimizationProblem {
   void SetMaxNumIterations(int32 max_num_iterations);
 
   // Optimizes the global poses.
-  void Solve(const std::vector<Constraint>& constraints,
+  void Solve(mapping::MapById<mapping::NodeId, MyConstraint>& my_constraints,
+             const std::vector<Constraint>& constraints,
              const std::set<int>& frozen_trajectories);
 
   const mapping::MapById<mapping::NodeId, NodeData>& node_data() const;
@@ -91,19 +94,21 @@ class OptimizationProblem {
   const sensor::MapByTime<sensor::ImuData>& imu_data() const;
   const sensor::MapByTime<sensor::OdometryData>& odometry_data() const;
 
- private:
-  std::unique_ptr<transform::Rigid3d> InterpolateOdometry(
-      int trajectory_id, common::Time time) const;
   // Uses odometry if available, otherwise the local SLAM results.
   transform::Rigid3d ComputeRelativePose(
       int trajectory_id, const NodeData& first_node_data,
       const NodeData& second_node_data) const;
+
+ private:
+  std::unique_ptr<transform::Rigid3d> InterpolateOdometry(
+      int trajectory_id, common::Time time) const;
 
   mapping::pose_graph::proto::OptimizationProblemOptions options_;
   mapping::MapById<mapping::NodeId, NodeData> node_data_;
   mapping::MapById<mapping::SubmapId, SubmapData> submap_data_;
   sensor::MapByTime<sensor::ImuData> imu_data_;
   sensor::MapByTime<sensor::OdometryData> odometry_data_;
+  friend class mapping::MyNodeTrimmer;
 };
 
 }  // namespace pose_graph

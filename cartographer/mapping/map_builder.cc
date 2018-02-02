@@ -116,6 +116,7 @@ int MapBuilder::AddTrajectoryBuilder(
                                         trajectory_id, pose_graph_2d_.get(),
                                         local_slam_result_callback)));
   }
+  pose_graph_->AddTrimmer(common::make_unique<MyNodeTrimmer>());
   if (trajectory_options.pure_localization()) {
     constexpr int kSubmapsToKeep = 3;
     pose_graph_->AddTrimmer(common::make_unique<PureLocalizationTrimmer>(

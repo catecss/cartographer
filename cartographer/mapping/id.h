@@ -291,6 +291,7 @@ class MapById {
     const auto it = trajectory.data_.find(GetIndex(id));
     CHECK(it != trajectory.data_.end());
     if (std::next(it) == trajectory.data_.end()) {
+      LOG(INFO) << "Can't append anymore!";
       // We are removing the data with the highest index from this trajectory.
       // We assume that we will never append to it anymore. If we did, we would
       // have to make sure that gaps in indices are properly chosen to maintain
