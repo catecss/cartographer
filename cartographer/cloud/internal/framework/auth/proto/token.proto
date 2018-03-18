@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package cartographer.cloud.framework.auth.proto;
+
+import "google/protobuf/empty.proto";
+
+/* Cloud robotics API for providing auth tokens to client applications. */
+service Token {
+  // Retrieves a new access token.
+  rpc GetToken(google.protobuf.Empty) returns (GetTokenResponse) {}
+}
+
+message GetTokenResponse { string access_token = 1; }
