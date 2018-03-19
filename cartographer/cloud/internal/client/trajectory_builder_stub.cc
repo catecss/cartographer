@@ -26,9 +26,9 @@ namespace cartographer {
 namespace cloud {
 
 TrajectoryBuilderStub::TrajectoryBuilderStub(
-    std::shared_ptr<::grpc::Channel> client_channel, const int trajectory_id,
+    std::shared_ptr<framework::Channel> client_channel, const int trajectory_id,
     LocalSlamResultCallback local_slam_result_callback)
-    : client_channel_(client_channel),
+    : client_channel_(std::move(client_channel)),
       trajectory_id_(trajectory_id),
       receive_local_slam_results_client_(client_channel_) {
   if (local_slam_result_callback) {

@@ -21,6 +21,7 @@
 #include <set>
 #include <string>
 
+#include "cartographer/cloud/internal/framework/auth/credentials_provider.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
 #include "cartographer/mapping/trajectory_builder_interface.h"
 
@@ -54,7 +55,7 @@ class LocalTrajectoryUploaderInterface {
 
 // Returns LocalTrajectoryUploader with the actual implementation.
 std::unique_ptr<LocalTrajectoryUploaderInterface> CreateLocalTrajectoryUploader(
-    const std::string& uplink_server_address);
+    const std::string& uplink_server_address, bool use_ssl, std::unique_ptr<framework::auth::CredentialsProvider> credentials_provider);
 
 }  // namespace cloud
 }  // namespace cartographer

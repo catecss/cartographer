@@ -19,19 +19,21 @@
 
 #include <memory>
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/mapping/map_builder_interface.h"
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/mapping/trajectory_builder_interface.h"
-#include "grpc++/grpc++.h"
 
 namespace cartographer {
 namespace cloud {
 
 class MapBuilderStub : public mapping::MapBuilderInterface {
  public:
-  MapBuilderStub(const std::string& server_address);
+  MapBuilderStub(const std::string& server_address, bool use_ssl, std::unique_ptr<framework::auth::CredentialsProvider> credentials_provider);
 
   MapBuilderStub(const MapBuilderStub&) = delete;
+
+  ~MapBuilderStub();
   MapBuilderStub& operator=(const MapBuilderStub&) = delete;
 
   int AddTrajectoryBuilder(
@@ -56,7 +58,9 @@ class MapBuilderStub : public mapping::MapBuilderInterface {
   GetAllTrajectoryBuilderOptions() const override;
 
  private:
-  std::shared_ptr<::grpc::Channel> client_channel_;
+  struct MapBuilderStubImpl;
+  std::unique_ptr<MapBuilderStubImpl> impl_;
+  std::shared_ptr<framework::Channel> client_channel_;
   std::unique_ptr<mapping::PoseGraphInterface> pose_graph_stub_;
   std::map<int, std::unique_ptr<mapping::TrajectoryBuilderInterface>>
       trajectory_builder_stubs_;

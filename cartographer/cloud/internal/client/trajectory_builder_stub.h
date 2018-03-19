@@ -19,6 +19,7 @@
 
 #include <thread>
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/cloud/internal/framework/client.h"
 #include "cartographer/cloud/internal/handlers/add_fixed_frame_pose_data_handler.h"
 #include "cartographer/cloud/internal/handlers/add_imu_data_handler.h"
@@ -29,7 +30,6 @@
 #include "cartographer/cloud/internal/handlers/receive_local_slam_results_handler.h"
 #include "cartographer/mapping/local_slam_result_data.h"
 #include "cartographer/mapping/trajectory_builder_interface.h"
-#include "grpc++/grpc++.h"
 #include "pose_graph_stub.h"
 #include "trajectory_builder_stub.h"
 
@@ -38,7 +38,7 @@ namespace cloud {
 
 class TrajectoryBuilderStub : public mapping::TrajectoryBuilderInterface {
  public:
-  TrajectoryBuilderStub(std::shared_ptr<::grpc::Channel> client_channel,
+  TrajectoryBuilderStub(std::shared_ptr<framework::Channel> client_channel,
                         const int trajectory_id,
                         LocalSlamResultCallback local_slam_result_callback);
   ~TrajectoryBuilderStub() override;
@@ -66,7 +66,7 @@ class TrajectoryBuilderStub : public mapping::TrajectoryBuilderInterface {
           client_reader,
       LocalSlamResultCallback local_slam_result_callback);
 
-  std::shared_ptr<::grpc::Channel> client_channel_;
+  std::shared_ptr<framework::Channel> client_channel_;
   const int trajectory_id_;
   std::unique_ptr<framework::Client<handlers::AddRangefinderDataHandler>>
       add_rangefinder_client_;

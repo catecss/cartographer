@@ -17,15 +17,15 @@
 #ifndef CARTOGRAPHER_CLOUD_INTERNAL_CLIENT_POSE_GRAPH_STUB_H_
 #define CARTOGRAPHER_CLOUD_INTERNAL_CLIENT_POSE_GRAPH_STUB_H_
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/mapping/pose_graph_interface.h"
-#include "grpc++/grpc++.h"
 
 namespace cartographer {
 namespace cloud {
 
 class PoseGraphStub : public ::cartographer::mapping::PoseGraphInterface {
  public:
-  PoseGraphStub(std::shared_ptr<::grpc::Channel> client_channel);
+  PoseGraphStub(std::shared_ptr<framework::Channel> client_channel);
 
   PoseGraphStub(const PoseGraphStub&) = delete;
   PoseGraphStub& operator=(const PoseGraphStub&) = delete;
@@ -47,7 +47,7 @@ class PoseGraphStub : public ::cartographer::mapping::PoseGraphInterface {
   mapping::proto::PoseGraph ToProto() override;
 
  private:
-  std::shared_ptr<::grpc::Channel> client_channel_;
+  std::shared_ptr<framework::Channel> client_channel_;
 };
 
 }  // namespace cloud

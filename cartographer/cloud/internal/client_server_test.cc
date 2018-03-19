@@ -104,7 +104,7 @@ class ClientServerTest : public ::testing::Test {
 
   void InitializeStub() {
     stub_ = common::make_unique<MapBuilderStub>(
-        map_builder_server_options_.server_address());
+        map_builder_server_options_.server_address(), false /* use_ssl */, nullptr /* credentials_provider*/);
     EXPECT_TRUE(stub_ != nullptr);
   }
 

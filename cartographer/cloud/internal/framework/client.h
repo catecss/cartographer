@@ -17,6 +17,7 @@
 #ifndef CARTOGRAPHER_CLOUD_INTERNAL_FRAMEWORK_CLIENT_H
 #define CARTOGRAPHER_CLOUD_INTERNAL_FRAMEWORK_CLIENT_H
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/cloud/internal/framework/retry.h"
 #include "cartographer/cloud/internal/framework/rpc_handler_interface.h"
 #include "cartographer/cloud/internal/framework/type_traits.h"
@@ -32,30 +33,30 @@ namespace framework {
 template <typename RpcHandlerType>
 class Client {
  public:
-  Client(std::shared_ptr<::grpc::Channel> channel, RetryStrategy retry_strategy)
-      : channel_(channel),
+  Client(std::shared_ptr<Channel> channel, RetryStrategy retry_strategy)
+      : channel_(std::move(channel)),
         client_context_(common::make_unique<::grpc::ClientContext>()),
         rpc_method_name_(
             RpcHandlerInterface::Instantiate<RpcHandlerType>()->method_name()),
         rpc_method_(rpc_method_name_.c_str(),
                     RpcType<typename RpcHandlerType::IncomingType,
                             typename RpcHandlerType::OutgoingType>::value,
-                    channel_),
+                    channel_->GetGrpcChannel()),
         retry_strategy_(retry_strategy) {
     CHECK(!retry_strategy ||
-          rpc_method_.method_type() == ::grpc::internal::RpcMethod::NORMAL_RPC)
-        << "Retry is currently only support for NORMAL_RPC.";
+        rpc_method_.method_type() == ::grpc::internal::RpcMethod::NORMAL_RPC)
+    << "Retry is currently only support for NORMAL_RPC.";
   }
 
-  Client(std::shared_ptr<::grpc::Channel> channel)
-      : channel_(channel),
+  Client(std::shared_ptr<Channel> channel)
+      : channel_(std::move(channel)),
         client_context_(common::make_unique<::grpc::ClientContext>()),
         rpc_method_name_(
             RpcHandlerInterface::Instantiate<RpcHandlerType>()->method_name()),
         rpc_method_(rpc_method_name_.c_str(),
                     RpcType<typename RpcHandlerType::IncomingType,
                             typename RpcHandlerType::OutgoingType>::value,
-                    channel_) {}
+                    channel_->GetGrpcChannel()) {}
 
   bool Read(typename RpcHandlerType::ResponseType *response) {
     switch (rpc_method_.method_type()) {
@@ -143,7 +144,7 @@ class Client {
       client_writer_.reset(
           ::grpc::internal::
               ClientWriterFactory<typename RpcHandlerType::RequestType>::Create(
-                  channel_.get(), rpc_method_, client_context_.get(),
+                  channel_->GetGrpcChannel().get(), rpc_method_, client_context_.get(),
                   &response_));
     }
   }
@@ -155,7 +156,7 @@ class Client {
       client_reader_writer_.reset(
           ::grpc::internal::ClientReaderWriterFactory<
               typename RpcHandlerType::RequestType,
-              typename RpcHandlerType::ResponseType>::Create(channel_.get(),
+              typename RpcHandlerType::ResponseType>::Create(channel_->GetGrpcChannel().get(),
                                                              rpc_method_,
                                                              client_context_
                                                                  .get()));
@@ -169,7 +170,7 @@ class Client {
     client_reader_.reset(
         ::grpc::internal::
             ClientReaderFactory<typename RpcHandlerType::ResponseType>::Create(
-                channel_.get(), rpc_method_, client_context_.get(), request));
+                channel_->GetGrpcChannel().get(), rpc_method_, client_context_.get(), request));
   }
 
   ::grpc::Status MakeBlockingUnaryCall(
@@ -178,10 +179,10 @@ class Client {
     CHECK_EQ(rpc_method_.method_type(),
              ::grpc::internal::RpcMethod::NORMAL_RPC);
     return ::grpc::internal::BlockingUnaryCall(
-        channel_.get(), rpc_method_, client_context_.get(), request, response);
+        channel_->GetGrpcChannel().get(), rpc_method_, client_context_.get(), request, response);
   }
 
-  std::shared_ptr<::grpc::Channel> channel_;
+  std::shared_ptr<Channel> channel_;
   std::unique_ptr<::grpc::ClientContext> client_context_;
   const std::string rpc_method_name_;
   const ::grpc::internal::RpcMethod rpc_method_;

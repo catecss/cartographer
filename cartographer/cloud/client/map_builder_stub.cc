@@ -35,9 +35,8 @@ using common::make_unique;
 
 }  // namespace
 
-MapBuilderStub::MapBuilderStub(const std::string& server_address)
-    : client_channel_(::grpc::CreateChannel(
-          server_address, ::grpc::InsecureChannelCredentials())),
+MapBuilderStub::MapBuilderStub(const std::string& server_address, bool use_ssl, std::unique_ptr<framework::auth::CredentialsProvider> credentials_provider)
+    : client_channel_(std::make_shared<framework::Channel>(server_address, use_ssl, std::move(credentials_provider))),
       pose_graph_stub_(make_unique<PoseGraphStub>(client_channel_)) {}
 
 int MapBuilderStub::AddTrajectoryBuilder(

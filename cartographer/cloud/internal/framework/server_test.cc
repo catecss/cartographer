@@ -18,6 +18,7 @@
 
 #include <future>
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/cloud/internal/framework/client.h"
 #include "cartographer/cloud/internal/framework/execution_context.h"
 #include "cartographer/cloud/internal/framework/proto/math_service.pb.h"
@@ -153,12 +154,11 @@ class ServerTest : public ::testing::Test {
     server_builder.RegisterHandler<GetSequenceHandler>();
     server_ = server_builder.Build();
 
-    client_channel_ = ::grpc::CreateChannel(
-        kServerAddress, ::grpc::InsecureChannelCredentials());
+    client_channel_ = std::make_shared<Channel>(kServerAddress, false /* use_ssl */, nullptr /* credentials_provider */);
   }
 
   std::unique_ptr<Server> server_;
-  std::shared_ptr<::grpc::Channel> client_channel_;
+  std::shared_ptr<Channel> client_channel_;
 };
 
 TEST_F(ServerTest, StartAndStopServerTest) {

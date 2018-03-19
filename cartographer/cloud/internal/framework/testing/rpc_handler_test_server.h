@@ -20,6 +20,7 @@
 #include <functional>
 #include <string>
 
+#include "cartographer/cloud/internal/framework/channel.h"
 #include "cartographer/cloud/internal/framework/client.h"
 #include "cartographer/cloud/internal/framework/rpc_handler_interface.h"
 #include "cartographer/cloud/internal/framework/server.h"
@@ -42,8 +43,7 @@ class RpcHandlerTestServer : public Server {
  public:
   RpcHandlerTestServer(std::unique_ptr<ExecutionContext> execution_context)
       : Server(Options{1, 1, kServerAddress}),
-        channel_(::grpc::CreateChannel(kServerAddress,
-                                       ::grpc::InsecureChannelCredentials())),
+        channel_(std::make_shared<framework::Channel>(kServerAddress, /* use_ssl */ false, /* credentials_provider */ nullptr)),
         client_(channel_) {
     std::string method_full_name_under_test =
         RpcHandlerInterface::Instantiate<RpcHandlerType>()->method_name();
@@ -126,7 +126,7 @@ class RpcHandlerTestServer : public Server {
         handler_instantiator, rpc_type, method_full_name};
   }
 
-  std::shared_ptr<::grpc::Channel> channel_;
+  std::shared_ptr<Channel> channel_;
   cloud::framework::Client<RpcHandlerType> client_;
   common::BlockingQueue<
       typename RpcHandlerWrapper<RpcHandlerType>::RpcHandlerEvent>

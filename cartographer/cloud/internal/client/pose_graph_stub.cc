@@ -29,8 +29,8 @@
 namespace cartographer {
 namespace cloud {
 
-PoseGraphStub::PoseGraphStub(std::shared_ptr<::grpc::Channel> client_channel)
-    : client_channel_(client_channel) {}
+PoseGraphStub::PoseGraphStub(std::shared_ptr<framework::Channel> client_channel)
+    : client_channel_(std::move(client_channel)) {}
 
 void PoseGraphStub::RunFinalOptimization() {
   google::protobuf::Empty request;
