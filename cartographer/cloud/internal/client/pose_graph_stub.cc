@@ -107,13 +107,9 @@ std::map<std::string, transform::Rigid3d> PoseGraphStub::GetLandmarkPoses() {
   return landmark_poses;
 }
 
-bool PoseGraphStub::IsTrajectoryFinished(int trajectory_id) {
-  LOG(FATAL) << "Not implemented";
-}
+bool PoseGraphStub::IsTrajectoryFinished(int trajectory_id) { return false; }
 
-bool PoseGraphStub::IsTrajectoryFrozen(int trajectory_id) {
-  LOG(FATAL) << "Not implemented";
-}
+bool PoseGraphStub::IsTrajectoryFrozen(int trajectory_id) { return false; }
 
 std::map<int, mapping::PoseGraphInterface::TrajectoryData>
 PoseGraphStub::GetTrajectoryData() {
