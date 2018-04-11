@@ -20,11 +20,7 @@
 #include <thread>
 
 #include "async_grpc/client.h"
-#include "cartographer/cloud/internal/handlers/add_fixed_frame_pose_data_handler.h"
-#include "cartographer/cloud/internal/handlers/add_imu_data_handler.h"
-#include "cartographer/cloud/internal/handlers/add_landmark_data_handler.h"
-#include "cartographer/cloud/internal/handlers/add_local_slam_result_data_handler.h"
-#include "cartographer/cloud/internal/handlers/add_odometry_data_handler.h"
+#include "cartographer/cloud/internal/handlers/add_sensor_data_batch_handler.h"
 #include "cartographer/cloud/internal/handlers/add_trajectory_handler.h"
 #include "cartographer/cloud/internal/handlers/finish_trajectory_handler.h"
 #include "cartographer/cloud/internal/sensor/serialization.h"
@@ -89,40 +85,9 @@ class LocalTrajectoryUploader : public LocalTrajectoryUploaderInterface {
   common::BlockingQueue<std::unique_ptr<google::protobuf::Message>> send_queue_;
   bool shutting_down_ = false;
   std::unique_ptr<std::thread> upload_thread_;
-  std::unique_ptr<async_grpc::Client<handlers::AddFixedFramePoseDataSignature>>
-      add_fixed_frame_pose_client_;
-  std::unique_ptr<async_grpc::Client<handlers::AddImuDataSignature>>
-      add_imu_client_;
-  std::unique_ptr<async_grpc::Client<handlers::AddLocalSlamResultDataSignature>>
-      add_local_slam_result_client_;
-  std::unique_ptr<async_grpc::Client<handlers::AddOdometryDataSignature>>
-      add_odometry_client_;
-  std::unique_ptr<async_grpc::Client<handlers::AddLandmarkDataSignature>>
-      add_landmark_client_;
 };
 
-LocalTrajectoryUploader::~LocalTrajectoryUploader() {
-  if (add_imu_client_) {
-    CHECK(add_imu_client_->StreamWritesDone());
-    CHECK(add_imu_client_->StreamFinish().ok());
-  }
-  if (add_odometry_client_) {
-    CHECK(add_odometry_client_->StreamWritesDone());
-    CHECK(add_odometry_client_->StreamFinish().ok());
-  }
-  if (add_fixed_frame_pose_client_) {
-    CHECK(add_fixed_frame_pose_client_->StreamWritesDone());
-    CHECK(add_fixed_frame_pose_client_->StreamFinish().ok());
-  }
-  if (add_local_slam_result_client_) {
-    CHECK(add_local_slam_result_client_->StreamWritesDone());
-    CHECK(add_local_slam_result_client_->StreamFinish().ok());
-  }
-  if (add_landmark_client_) {
-    CHECK(add_landmark_client_->StreamWritesDone());
-    CHECK(add_landmark_client_->StreamFinish().ok());
-  }
-}
+LocalTrajectoryUploader::~LocalTrajectoryUploader() {}
 
 void LocalTrajectoryUploader::Start() {
   CHECK(!shutting_down_);
@@ -141,31 +106,43 @@ void LocalTrajectoryUploader::Shutdown() {
 void LocalTrajectoryUploader::ProcessSendQueue() {
   LOG(INFO) << "Starting uploader thread.";
   proto::AddSensorDataBatchRequest batch_request;
+  LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
   while (!shutting_down_) {
     auto data_message = send_queue_.PopWithTimeout(kPopTimeout);
-    proto::SensorData* sensor_data = batch_request.add_sensor_data();
     if (data_message) {
+      proto::SensorData* sensor_data = batch_request.add_sensor_data();
       if (const auto *fixed_frame_pose_data =
               dynamic_cast<proto::AddFixedFramePoseDataRequest *>(
                   data_message.get())) {
+    	LOG(INFO) << "FF";
         ConvertToSensorData(*fixed_frame_pose_data, sensor_data);
       } else if (auto *imu_data = dynamic_cast<proto::AddImuDataRequest *>(
                      data_message.get())) {
+      	LOG(INFO) << "IMU";
         ConvertToSensorData(*imu_data, sensor_data);
       } else if (auto *odometry_data =
                      dynamic_cast<proto::AddOdometryDataRequest *>(
                          data_message.get())) {
+      	LOG(INFO) << "ODO";
         ConvertToSensorData(*odometry_data, sensor_data);
       } else if (auto *local_slam_result_data =
                      dynamic_cast<proto::AddLocalSlamResultDataRequest *>(
                          data_message.get())) {
+      	LOG(INFO) << "LS";
         ConvertToSensorData(*local_slam_result_data, sensor_data);
       } else if (auto *landmark_data =
                      dynamic_cast<proto::AddLandmarkDataRequest *>(
                          data_message.get())) {
+      	LOG(INFO) << "LAND";
         ConvertToSensorData(*landmark_data, sensor_data);
       } else {
         LOG(FATAL) << "Unknown message type: " << data_message->GetTypeName();
+      }
+      LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
+      if (batch_request.sensor_data_size() == 100) {
+    	  async_grpc::Client<handlers::AddSensorDataBatchSignature> client(client_channel_, async_grpc::CreateUnlimitedConstantDelayStrategy(common::FromSeconds(1)));
+    	  CHECK(client.Write(batch_request));
+    	  batch_request.clear_sensor_data();
       }
     }
   }

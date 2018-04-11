@@ -255,7 +255,7 @@ void PoseGraph2D::ComputeConstraintsForNode(
     const SubmapId submap_id = submap_ids[i];
     // Even if this was the last node added to 'submap_id', the submap will
     // only be marked as finished in 'submap_data_' further below.
-    CHECK(submap_data_.at(submap_id).state == SubmapState::kActive);
+    CHECK(submap_data_.at(submap_id).state == SubmapState::kActive) << submap_id;
     submap_data_.at(submap_id).node_ids.emplace(node_id);
     const transform::Rigid2d constraint_transform =
         pose_graph::ComputeSubmapPose(*insertion_submaps[i]).inverse() * pose;

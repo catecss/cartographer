@@ -31,8 +31,9 @@ namespace handlers {
 
 void AddSensorDataBatchHandler::OnRequest(
     const proto::AddSensorDataBatchRequest& request) {
+  LOG(INFO) << "Number of sensor data received: " << request.sensor_data_size();
   for (const proto::SensorData& sensor_data : request.sensor_data()) {
-    switch (sensor_data.sensor_data_case()) {
+	switch (sensor_data.sensor_data_case()) {
       case proto::SensorData::kOdometryData:
         GetUnsynchronizedContext<MapBuilderContextInterface>()
             ->EnqueueSensorData(
