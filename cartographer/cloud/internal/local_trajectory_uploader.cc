@@ -106,7 +106,7 @@ void LocalTrajectoryUploader::Shutdown() {
 void LocalTrajectoryUploader::ProcessSendQueue() {
   LOG(INFO) << "Starting uploader thread.";
   proto::AddSensorDataBatchRequest batch_request;
-  LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
+  //LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
   while (!shutting_down_) {
     auto data_message = send_queue_.PopWithTimeout(kPopTimeout);
     if (data_message) {
@@ -114,33 +114,34 @@ void LocalTrajectoryUploader::ProcessSendQueue() {
       if (const auto *fixed_frame_pose_data =
               dynamic_cast<proto::AddFixedFramePoseDataRequest *>(
                   data_message.get())) {
-    	LOG(INFO) << "FF";
+    	//LOG(INFO) << "FF";
         ConvertToSensorData(*fixed_frame_pose_data, sensor_data);
       } else if (auto *imu_data = dynamic_cast<proto::AddImuDataRequest *>(
                      data_message.get())) {
-      	LOG(INFO) << "IMU";
+      	//LOG(INFO) << "IMU";
         ConvertToSensorData(*imu_data, sensor_data);
       } else if (auto *odometry_data =
                      dynamic_cast<proto::AddOdometryDataRequest *>(
                          data_message.get())) {
-      	LOG(INFO) << "ODO";
+      	//LOG(INFO) << "ODO";
         ConvertToSensorData(*odometry_data, sensor_data);
       } else if (auto *local_slam_result_data =
                      dynamic_cast<proto::AddLocalSlamResultDataRequest *>(
                          data_message.get())) {
-      	LOG(INFO) << "LS";
+      	//LOG(INFO) << "LS";
         ConvertToSensorData(*local_slam_result_data, sensor_data);
       } else if (auto *landmark_data =
                      dynamic_cast<proto::AddLandmarkDataRequest *>(
                          data_message.get())) {
-      	LOG(INFO) << "LAND";
+      	//LOG(INFO) << "LAND";
         ConvertToSensorData(*landmark_data, sensor_data);
       } else {
         LOG(FATAL) << "Unknown message type: " << data_message->GetTypeName();
       }
-      LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
+      //LOG(INFO) << "Queue size: " << batch_request.sensor_data_size();
       if (batch_request.sensor_data_size() == 100) {
     	  async_grpc::Client<handlers::AddSensorDataBatchSignature> client(client_channel_, async_grpc::CreateUnlimitedConstantDelayStrategy(common::FromSeconds(1)));
+    	  LOG(INFO) << "SENDING BATCH";
     	  CHECK(client.Write(batch_request));
     	  batch_request.clear_sensor_data();
       }

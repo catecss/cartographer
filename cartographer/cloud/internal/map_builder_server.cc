@@ -117,8 +117,8 @@ void MapBuilderServer::ProcessSensorDataQueue() {
     std::unique_ptr<MapBuilderContextInterface::Data> sensor_data =
         incoming_data_queue_.PopWithTimeout(kPopTimeout);
     if (sensor_data) {
-      grpc_server_->GetContext<MapBuilderContext>()->AddSensorDataToTrajectory(
-          *sensor_data);
+      //grpc_server_->GetContext<MapBuilderContext>()->AddSensorDataToTrajectory(
+      //    *sensor_data);
     }
   }
 }
@@ -154,6 +154,7 @@ void MapBuilderServer::OnLocalSlamResult(
                                         *insertion_result, data_request.get());
     // TODO(cschuet): Make this more robust.
     if (insertion_result->insertion_submaps.front()->finished()) {
+      LOG(INFO) << "SUBMAP FINISHED!";
       ++starting_submap_index_;
     }
     grpc_server_->GetUnsynchronizedContext<MapBuilderContext>()

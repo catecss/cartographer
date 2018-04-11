@@ -77,6 +77,7 @@ std::shared_ptr<mapping::Submap2D> MapBuilderContext::UpdateSubmap2D(
   CHECK(proto.has_submap_2d());
   mapping::SubmapId submap_id{proto.submap_id().trajectory_id(),
                               proto.submap_id().submap_index()};
+  LOG(INFO) << submap_id << " -- " << (proto.submap_2d().finished() ? "TRUE" : "FALSE");
   std::shared_ptr<mapping::Submap2D> submap_2d_ptr;
   auto submap_it = unfinished_submaps_.find(submap_id);
   if (submap_it == unfinished_submaps_.end()) {
@@ -93,6 +94,7 @@ std::shared_ptr<mapping::Submap2D> MapBuilderContext::UpdateSubmap2D(
     // If the submap was just finished by the recent update, remove it from the
     // list of unfinished submaps.
     if (submap_2d_ptr->finished()) {
+      LOG(INFO) << "Removing finished submap " << submap_id;
       unfinished_submaps_.Trim(submap_id);
     } else {
       // If the submap is unfinished set the 'num_range_data' to 0 since we
@@ -144,9 +146,13 @@ MapBuilderContext::ProcessLocalSlamResultData(
   CHECK_GE(proto.submaps().size(), 1);
   CHECK(proto.submaps(0).has_submap_2d() || proto.submaps(0).has_submap_3d());
   if (proto.submaps(0).has_submap_2d()) {
+    LOG(INFO) << "Received 2D submaps!";
     std::vector<std::shared_ptr<const mapping::Submap2D>> submaps;
     for (const auto& submap_proto : proto.submaps()) {
       submaps.push_back(UpdateSubmap2D(submap_proto));
+    }
+    for (auto la : submaps) {
+      LOG(INFO) << la.get();
     }
     return common::make_unique<mapping::LocalSlamResult2D>(
         sensor_id, time,

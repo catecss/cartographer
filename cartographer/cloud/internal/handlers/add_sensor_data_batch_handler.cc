@@ -74,6 +74,7 @@ void AddSensorDataBatchHandler::OnRequest(
                     sensor::FromProto(sensor_data.landmark_data())));
         break;
       case proto::SensorData::kLocalSlamResultData: {
+        // WRONG, WRONG, WRONG! This must run on the LOCAL SLAM thread!
         auto local_slam_result_data =
             GetUnsynchronizedContext<MapBuilderContextInterface>()
                 ->ProcessLocalSlamResultData(

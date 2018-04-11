@@ -126,6 +126,9 @@ NodeId PoseGraph2D::AddNode(
   // We have to check this here, because it might have changed by the time we
   // execute the lambda.
   const bool newly_finished_submap = insertion_submaps.front()->finished();
+  LOG(INFO) << "Adding node " << node_id;
+  LOG(INFO) << "Newly finished submap: " << (newly_finished_submap ? "TRUE" : "FALSE");
+
   AddWorkItem([=]() REQUIRES(mutex_) {
     ComputeConstraintsForNode(node_id, insertion_submaps,
                               newly_finished_submap);
@@ -278,6 +281,7 @@ void PoseGraph2D::ComputeConstraintsForNode(
     const SubmapId finished_submap_id = submap_ids.front();
     SubmapData& finished_submap_data = submap_data_.at(finished_submap_id);
     CHECK(finished_submap_data.state == SubmapState::kActive);
+    LOG(INFO) << "Finishing submap " << finished_submap_id;
     finished_submap_data.state = SubmapState::kFinished;
     // We have a new completed submap, so we look into adding constraints for
     // old nodes.
@@ -446,6 +450,7 @@ void PoseGraph2D::AddSubmapFromProto(
   global_submap_poses_.Insert(submap_id,
                               pose_graph::SubmapData2D{global_submap_pose_2d});
   AddWorkItem([this, submap_id, global_submap_pose_2d]() REQUIRES(mutex_) {
+    LOG(INFO) << "Finishing submap " << submap_id;
     submap_data_.at(submap_id).state = SubmapState::kFinished;
     optimization_problem_->InsertSubmap(submap_id, global_submap_pose_2d);
   });
