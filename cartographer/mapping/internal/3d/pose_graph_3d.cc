@@ -41,9 +41,11 @@ namespace mapping {
 
 PoseGraph3D::PoseGraph3D(
     const proto::PoseGraphOptions& options,
+    GlobalSlamResultCallback global_slam_result_callback,
     std::unique_ptr<optimization::OptimizationProblem3D> optimization_problem,
     common::ThreadPool* thread_pool)
     : options_(options),
+      global_slam_result_callback_(global_slam_result_callback),
       optimization_problem_(std::move(optimization_problem)),
       constraint_builder_(options_.constraint_builder_options(), thread_pool) {}
 
@@ -607,6 +609,8 @@ void PoseGraph3D::RunOptimization() {
 
   const auto& submap_data = optimization_problem_->submap_data();
   const auto& node_data = optimization_problem_->node_data();
+  std::map<int, NodeId> trajectory_id_to_last_optimized_node_id;
+  std::map<int, SubmapId> trajectory_id_to_last_optimized_submap_id;
   for (const int trajectory_id : node_data.trajectory_ids()) {
     for (const auto& node : node_data.trajectory(trajectory_id)) {
       trajectory_nodes_.at(node.id).global_pose = node.data.global_pose;
@@ -623,6 +627,12 @@ void PoseGraph3D::RunOptimization() {
 
     const NodeId last_optimized_node_id =
         std::prev(node_data.EndOfTrajectory(trajectory_id))->id;
+    trajectory_id_to_last_optimized_node_id[trajectory_id] =
+        last_optimized_node_id;
+    const SubmapId last_optimized_submap_id =
+        std::prev(submap_data.EndOfTrajectory(trajectory_id))->id;
+    trajectory_id_to_last_optimized_submap_id[trajectory_id] =
+        last_optimized_submap_id;
     auto node_it = std::next(trajectory_nodes_.find(last_optimized_node_id));
     for (; node_it != trajectory_nodes_.EndOfTrajectory(trajectory_id);
          ++node_it) {
@@ -630,6 +640,10 @@ void PoseGraph3D::RunOptimization() {
       mutable_trajectory_node.global_pose =
           old_global_to_new_global * mutable_trajectory_node.global_pose;
     }
+  }
+  if (global_slam_result_callback_) {
+    global_slam_result_callback_(trajectory_id_to_last_optimized_submap_id,
+                                 trajectory_id_to_last_optimized_node_id);
   }
   for (const auto& landmark : optimization_problem_->landmark_data()) {
     landmark_nodes_[landmark.first].global_landmark_pose = landmark.second;

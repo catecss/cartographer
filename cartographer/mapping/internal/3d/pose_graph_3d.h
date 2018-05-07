@@ -60,6 +60,7 @@ class PoseGraph3D : public PoseGraph {
  public:
   PoseGraph3D(
       const proto::PoseGraphOptions& options,
+      GlobalSlamResultCallback global_slam_result_callback,
       std::unique_ptr<optimization::OptimizationProblem3D> optimization_problem,
       common::ThreadPool* thread_pool);
   ~PoseGraph3D() override;
@@ -219,6 +220,7 @@ class PoseGraph3D : public PoseGraph {
       REQUIRES(mutex_);
 
   const proto::PoseGraphOptions options_;
+  GlobalSlamResultCallback global_slam_result_callback_;
   common::Mutex mutex_;
 
   // If it exists, further work items must be added to this queue, and will be

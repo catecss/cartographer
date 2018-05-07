@@ -61,6 +61,7 @@ class PoseGraph2D : public PoseGraph {
  public:
   PoseGraph2D(
       const proto::PoseGraphOptions& options,
+      GlobalSlamResultCallback global_slam_result_callback,
       std::unique_ptr<optimization::OptimizationProblem2D> optimization_problem,
       common::ThreadPool* thread_pool);
   ~PoseGraph2D() override;
@@ -215,6 +216,7 @@ class PoseGraph2D : public PoseGraph {
       REQUIRES(mutex_);
 
   const proto::PoseGraphOptions options_;
+  GlobalSlamResultCallback global_slam_result_callback_;
   common::Mutex mutex_;
 
   // If it exists, further work items must be added to this queue, and will be
